@@ -1,0 +1,11 @@
+.Selection {
+    border: 1px solid black;
+    background-color: darkslategray;
+}
+
+.Selection-Button {
+    width: 80px;
+    height: 40px;
+    background-color: white;
+    border-width: 1px;
+}

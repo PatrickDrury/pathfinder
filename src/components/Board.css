@@ -1,0 +1,7 @@
+.Board{
+    background-color: darkslategray;
+    display: flex;
+    flex-wrap: wrap;
+    border: 1px solid #000000;
+    place-content: center;
+}
