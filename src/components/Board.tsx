@@ -1,9 +1,10 @@
 import Tile from './Tile'
-import {useEffect, useState} from "react";
+import {useState} from "react";
 import './Board.css'
 
-const xTiles = 51
-const yTiles = 24
+const xTiles = 72
+const yTiles = 36
+
 
 const Board = () => {
 
@@ -13,7 +14,6 @@ const Board = () => {
     const [mouseDown, setMouseDown] = useState(false);
 
     let drawQueue = []
-    let isDrawing = false
 
     // Used to reset the board to a blank state
     const resetBoard = () => {
@@ -30,7 +30,7 @@ const Board = () => {
             }
         }
 
-        setTiles(tempTiles)
+        setTiles([...tempTiles])
     }
 
     // Initial setup of the tiles
@@ -48,15 +48,12 @@ const Board = () => {
     }
 
     const slowDraw = async () => {
-        if(drawQueue.length > 0) {
-            isDrawing = true
-        } else {
-            isDrawing = false
+        if(drawQueue.length === 0) {
             return
         }
         let drawInfo = drawQueue.shift()
         updateColor(drawInfo.pos, drawInfo.color)
-        setTimeout(slowDraw, 0)
+        setTimeout(slowDraw, 5)
     }
 
     // Used for dragging walls
@@ -67,123 +64,101 @@ const Board = () => {
         updateColor(pos, color)
     }
 
-    const mToggle = () => {
-        setMouseDown(!mouseDown)
+    const mDown = () => {
+        setMouseDown(true)
     }
 
-    const setRegion = (TL, BR) => {
+    const mUp = () => {
+        setMouseDown(false)
+    }
+
+    const setRegion = (TL, BR, color) => {
         for(let y = TL.y; y < BR.y; y++) {
             for(let x = TL.x; x < BR.x; x++) {
-                updateColor( {x:x, y:y}, 3 )
+                updateColor( {x:x, y:y}, color )
             }
         }
     }
 
-    // Creates a vertical bar at x from y1 to y2
-    const drawVerticalBarHole = (x, y1, y2) => {
-        for(let i = y1; i <= y2; i++) {
-            drawQueue.push({ pos:{x:x, y:i}, color:2 })
-        }
-        let hole = Math.floor( Math.random() * (y2 - y1 + 1) ) + y1
-        drawQueue.push({ pos:{x:x, y:hole}, color:0 })
-        if(!isDrawing) {
-            slowDraw()
-        }
+    const randomElement = (arr) => {
+        return Math.floor( Math.random() * arr.length )
     }
 
-    // Creates a Horizontal bar at y from x1 to x2
-    const drawHorizontalBarHole = (y, x1, x2) => {
-        for(let i = x1; i <= x2; i++) {
-            drawQueue.push({ pos:{x:i, y:y}, color:2 })
-        }
-        let hole = Math.floor( Math.random() * (x2 - x1 + 1) ) + x1
-        drawQueue.push({ pos:{x:hole, y:y}, color:0 })
-        if(!isDrawing) {
-            slowDraw()
-        }
-    }
+    const tileToAdd = (pos, tileSet) => {
 
-    // Creates a maze by recursive division
-    const createMaze = () => {
+        let possibleChoice = [ [pos[0] + 2, pos[1], pos[0] + 1, pos[1] ],
+            [pos[0] - 2, pos[1], pos[0] - 1, pos[1]],
+            [pos[0], pos[1] + 2, pos[0], pos[1] + 1],
+            [pos[0], pos[1] - 2, pos[0], pos[1] - 1]
+        ]
 
-        let sections = []
-        sections.push( { TL:{x:0,y:0}, BR:{x:xTiles - 1, y:yTiles - 1} } )
+        while(possibleChoice.length > 0) {
+            let element = randomElement(possibleChoice)
+            let choice = possibleChoice[element]
 
-        const vert = (TL, BR) => {
+            possibleChoice.splice(element, 1)
+            if (choice[0] >= 0 && choice[0] < xTiles && choice[1] >= 0 && choice[1] < yTiles) {
 
-            let x = Math.floor( Math.random() * (BR.x - TL.x - 2) ) + 1 + TL.x
-
-            drawVerticalBarHole(x, TL.y, BR.y)
-
-            let R1 = {TL:TL, BR:{x:x - 1, y:BR.y}}
-            let R2 = {TL:{x:x + 1, y:TL.y}, BR:BR}
-
-            sections.push(R2)
-            sections.push(R1)
-
-        }
-
-        const horiz = (TL, BR) => {
-
-            let y = Math.floor( Math.random() * (BR.y - TL.y - 2) ) + 1 + TL.y
-
-            drawHorizontalBarHole(y, TL.x, BR.x)
-
-            let R1 = {TL:TL, BR:{x:BR.x, y: y - 1}}
-            let R2 = {TL:{x:TL.x, y:y + 1 }, BR:BR}
-
-            sections.push(R2)
-            sections.push(R1)
-
-        }
-
-        while(sections.length > 0) {
-            console.log(JSON.stringify(sections))
-
-            let current = sections.pop()
-
-            let TL = current.TL
-            let BR = current.BR
-
-            // Decides if we can create a bar in the vertical / horizontal directions
-            let canVert = (BR.x - TL.x) > 1
-            let canHoriz = (BR.y - TL.y) > 1
-
-            console.log(canVert)
-            console.log(canHoriz)
-
-            if (!canVert || !canHoriz) {
-                continue
-            } else if (!canVert) {
-                horiz(TL, BR)
-            } else if (!canHoriz) {
-                vert(TL, BR)
-            } else {
-                if(Math.floor(Math.random() * 2) === 0) {
-                    vert(TL, BR)
-                } else {
-                    horiz(TL, BR)
+                if (tileSet[choice[1]][choice[0]].color === 1) {
+                    return choice
                 }
             }
         }
 
+        return null
+    }
+
+    // Creates a maze by using random dfs
+    const createMaze = ( start ) => {
+
+        let tileList = []
+
+        let mazeTiles = JSON.parse(JSON.stringify(tiles))
+
+        tileList.push( start )
+
+        drawQueue.push( {pos:{x:start[0], y:start[1]}, color:0} )
+
+        while(tileList.length > 0) {
+
+            console.log('test')
+
+            let tileElement = randomElement(tileList)
+            let currentTile = tileList[tileElement]
+
+            let toAdd = tileToAdd(currentTile, mazeTiles)
+
+            if(toAdd === null) {
+                tileList.splice(tileElement,1)
+                continue;
+            }
+
+            tileList.push(toAdd)
+
+            mazeTiles[toAdd[1]][toAdd[0]].color = 0
+            mazeTiles[toAdd[3]][toAdd[2]].color = 0
+
+            drawQueue.push( {pos:{x:toAdd[2], y:toAdd[3]}, color:0} )
+            drawQueue.push( {pos:{x:toAdd[0], y:toAdd[1]}, color:0} )
+
+        }
+
+        slowDraw()
+        console.log(mazeTiles)
     }
 
     const genMaze = () => {
-        resetBoard()
-        createMaze()
+        setRegion( {x:0,y:0} , {x:xTiles, y:yTiles}, 1 )
+        createMaze( [4,5] )
     }
 
-    const testString = () => {
-        drawHorizontalBarHole(1, 1, 4)
-    }
 
     return (
         <>
             <button onClick={genMaze}>CreateMaze</button>
             <button onClick={resetBoard}> Test string </button>
-            <div onMouseDown={mToggle}
-                 onMouseUp={mToggle}
+            <div onMouseDown={mDown}
+                 onMouseUp={mUp}
                  className='Board'
                  style={{width: xTiles * 20, height: yTiles * 20}}
             >
