@@ -7,7 +7,7 @@ const Tile = ( { color, pos, dragColor, UpdateColor } ) => {
             case 0:
                 return 'white'
             case 1:
-                return 'black'
+                return '#35353b'
             case 2:
                 return 'blue'
             default:
@@ -29,7 +29,7 @@ const Tile = ( { color, pos, dragColor, UpdateColor } ) => {
     }
 
     return (
-        <div className='Tile' style={{backgroundColor: getColor()}}
+        <div className='Tile' style={{backgroundColor: getColor(), borderColor: (color !== 1) ? ('black') : (getColor()) }}
              onMouseOver={drag}
              onMouseDown={onDown}
              onDoubleClick={doubleClick}

@@ -1,6 +1,8 @@
 .Selection {
-    border: 1px solid black;
-    background-color: darkslategray;
+    border: 1px solid #35353b;
+    border-bottom-style: none;
+    background-color: #35353b;
+    box-shadow: 20px 20px 10px black;
 }
 
 .Selection-Button {

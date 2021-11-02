@@ -1,9 +1,12 @@
 import Tile from './Tile'
 import {useState} from "react";
 import './Board.css'
+import Selection from "./Selection";
 
-const xTiles = 72
-const yTiles = 36
+const xTiles = 40
+const yTiles = 20
+let test = null
+let drawQueue = []
 
 
 const Board = () => {
@@ -12,8 +15,6 @@ const Board = () => {
     const [tiles, setTiles] = useState( []);
     // Mouse state, used for dragging
     const [mouseDown, setMouseDown] = useState(false);
-
-    let drawQueue = []
 
     // Used to reset the board to a blank state
     const resetBoard = () => {
@@ -47,13 +48,20 @@ const Board = () => {
         setTiles([...temp])
     }
 
+    const startDraw = async () => {
+        console.log('test')
+        test = setInterval(slowDraw, 0)
+    }
+
     const slowDraw = async () => {
         if(drawQueue.length === 0) {
+            console.log('Slow draw finished')
+            clearInterval(test)
             return
         }
+
         let drawInfo = drawQueue.shift()
         updateColor(drawInfo.pos, drawInfo.color)
-        setTimeout(slowDraw, 5)
     }
 
     // Used for dragging walls
@@ -108,20 +116,19 @@ const Board = () => {
         return null
     }
 
-    // Creates a maze by using random dfs
-    const createMaze = ( start ) => {
+    // Creates a maze by using random BFS
+    const createMazeBFS = ( start ) => {
 
         let tileList = []
+        let newDrawList = []
 
         let mazeTiles = JSON.parse(JSON.stringify(tiles))
 
         tileList.push( start )
-
-        drawQueue.push( {pos:{x:start[0], y:start[1]}, color:0} )
+        mazeTiles[start[1]][start[0]].color = 0
+        newDrawList.push( {pos:{x:start[0], y:start[1]}, color:0} )
 
         while(tileList.length > 0) {
-
-            console.log('test')
 
             let tileElement = randomElement(tileList)
             let currentTile = tileList[tileElement]
@@ -138,25 +145,71 @@ const Board = () => {
             mazeTiles[toAdd[1]][toAdd[0]].color = 0
             mazeTiles[toAdd[3]][toAdd[2]].color = 0
 
-            drawQueue.push( {pos:{x:toAdd[2], y:toAdd[3]}, color:0} )
-            drawQueue.push( {pos:{x:toAdd[0], y:toAdd[1]}, color:0} )
-
+            newDrawList.push( {pos:{x:toAdd[2], y:toAdd[3]}, color:0} )
+            newDrawList.push( {pos:{x:toAdd[0], y:toAdd[1]}, color:0} )
         }
 
-        slowDraw()
-        console.log(mazeTiles)
+        drawQueue = newDrawList
+        startDraw()
     }
 
-    const genMaze = () => {
+    // Creates a maze by using random DFS
+    const createMazeDFS = ( start ) => {
+
+        let tileList = []
+        let newDrawList = []
+
+        let mazeTiles = JSON.parse(JSON.stringify(tiles))
+
+        tileList.push( start )
+        mazeTiles[start[1]][start[0]].color = 0
+        newDrawList.push( {pos:{x:start[0], y:start[1]}, color:0} )
+
+        while(tileList.length > 0) {
+
+            //let tileElement = randomElement(tileList)
+            let currentTile = tileList[tileList.length - 1]
+
+            let toAdd = tileToAdd(currentTile, mazeTiles)
+
+            if(toAdd === null) {
+                tileList.splice(tileList.length-1,1)
+                continue;
+            }
+
+            tileList.push(toAdd)
+
+            mazeTiles[toAdd[1]][toAdd[0]].color = 0
+            mazeTiles[toAdd[3]][toAdd[2]].color = 0
+
+            newDrawList.push( {pos:{x:toAdd[2], y:toAdd[3]}, color:0} )
+            newDrawList.push( {pos:{x:toAdd[0], y:toAdd[1]}, color:0} )
+        }
+
+        drawQueue = newDrawList
+        startDraw()
+    }
+
+    const genMaze = async (DFS) => {
+        clearInterval(test)
+        drawQueue = []
         setRegion( {x:0,y:0} , {x:xTiles, y:yTiles}, 1 )
-        createMaze( [4,5] )
+        if(DFS) {
+            createMazeDFS( [10,5] )
+        } else {
+            createMazeBFS( [10,5] )
+        }
+    }
+
+    const stopDraw = () => {
+        clearInterval(test)
     }
 
 
     return (
         <>
-            <button onClick={genMaze}>CreateMaze</button>
-            <button onClick={resetBoard}> Test string </button>
+            <Selection genMaze={genMaze} />
+            <button onClick={stopDraw}>Stop Drawing</button>
             <div onMouseDown={mDown}
                  onMouseUp={mUp}
                  className='Board'

@@ -1,6 +1,6 @@
 .App{
     display: grid;
-    background-color: dimgray;
+    background-color: #141417;
     height: 100vh;
     place-content: center;
 }
