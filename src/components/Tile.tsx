@@ -16,12 +16,20 @@ const Tile = ( { color, pos, dragColor, UpdateColor } ) => {
     }
 
     const drag = () => {
-        dragColor(pos, 1)
+        if(color === 1) {
+            dragColor(pos, 0)
+        } else {
+            dragColor(pos, 1)
+        }
     }
 
     const onDown = () => {
         console.log(pos)
-        UpdateColor(pos, 1)
+        if(color === 1) {
+            UpdateColor(pos, 0)
+        } else {
+            UpdateColor(pos, 1)
+        }
     }
 
     const doubleClick = () => {

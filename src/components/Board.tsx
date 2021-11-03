@@ -3,8 +3,6 @@ import {useState} from "react";
 import './Board.css'
 import Selection from "./Selection";
 
-const xTiles = 40
-const yTiles = 20
 let test = null
 let drawQueue = []
 
@@ -15,6 +13,8 @@ const Board = () => {
     const [tiles, setTiles] = useState( []);
     // Mouse state, used for dragging
     const [mouseDown, setMouseDown] = useState(false);
+    const [xTiles, setXTiles] = useState(61);
+    const [yTiles, setYTiles] = useState(31);
 
     // Used to reset the board to a blank state
     const resetBoard = () => {
@@ -50,7 +50,7 @@ const Board = () => {
 
     const startDraw = async () => {
         console.log('test')
-        test = setInterval(slowDraw, 0)
+        test = setInterval(slowDraw, 1)
     }
 
     const slowDraw = async () => {
@@ -59,17 +59,17 @@ const Board = () => {
             clearInterval(test)
             return
         }
-
         let drawInfo = drawQueue.shift()
         updateColor(drawInfo.pos, drawInfo.color)
     }
 
     // Used for dragging walls
     const dragColor = (pos, color) => {
-        if(color === 1 && !mouseDown) {
+        if(!mouseDown) {
             return
+        } else {
+            updateColor(pos, color)
         }
-        updateColor(pos, color)
     }
 
     const mDown = () => {
@@ -195,21 +195,30 @@ const Board = () => {
         drawQueue = []
         setRegion( {x:0,y:0} , {x:xTiles, y:yTiles}, 1 )
         if(DFS) {
-            createMazeDFS( [10,5] )
+            createMazeDFS( [Math.floor(xTiles/2),Math.floor(yTiles/2)] )
         } else {
-            createMazeBFS( [10,5] )
+            createMazeBFS( [Math.floor(xTiles/2),Math.floor(yTiles/2)] )
         }
     }
 
     const stopDraw = () => {
+        drawQueue = []
         clearInterval(test)
+    }
+
+    const clearMaze = () => {
+        setRegion( {x:0, y:0}, {x:xTiles, y:yTiles}, 0 )
+    }
+
+    const displayString = () => {
+        console.log(JSON.stringify(tiles))
     }
 
 
     return (
         <>
             <Selection genMaze={genMaze} />
-            <button onClick={stopDraw}>Stop Drawing</button>
+            <button onClick={displayString}>To String</button>
             <div onMouseDown={mDown}
                  onMouseUp={mUp}
                  className='Board'
