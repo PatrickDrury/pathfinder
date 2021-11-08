@@ -1,6 +1,6 @@
 import './Selection.css'
 
-const Selection = ( {genMaze} ) => {
+const Selection = ( {genMaze, BFS, DFS} ) => {
 
     const createMazeBFS = () => {
         genMaze(false)
@@ -12,8 +12,8 @@ const Selection = ( {genMaze} ) => {
 
     return (
         <div className='Selection'>
-            <button className='Selection-Button'>DFS</button>
-            <button className='Selection-Button'>BFS</button>
+            <button className='Selection-Button' onClick={DFS}>DFS</button>
+            <button className='Selection-Button' onClick={BFS}>BFS</button>
             <button className='Selection-Button'>A*</button>
             <button className='Selection-Button' onClick={createMazeBFS}>BFS Maze</button>
             <button className='Selection-Button' onClick={createMazeDFS}>DFS Maze</button>

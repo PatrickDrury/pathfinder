@@ -1,6 +1,6 @@
 import './Tile.css'
 
-const Tile = ( { color, pos, dragColor, UpdateColor } ) => {
+const Tile = ( { color, pos, dragColor, UpdateColor, doubleClick } ) => {
 
     const getColor = () => {
         switch (color) {
@@ -9,7 +9,13 @@ const Tile = ( { color, pos, dragColor, UpdateColor } ) => {
             case 1:
                 return '#35353b'
             case 2:
-                return 'blue'
+                return 'green'
+            case 3:
+                return 'red'
+            case 4:
+                return '#9ba2c2'
+            case 5:
+                return '#253378'
             default:
                 return 'yellow'
         }
@@ -32,15 +38,15 @@ const Tile = ( { color, pos, dragColor, UpdateColor } ) => {
         }
     }
 
-    const doubleClick = () => {
-        UpdateColor(pos, 2)
+    const dClick = () => {
+        doubleClick(pos)
     }
 
     return (
         <div className='Tile' style={{backgroundColor: getColor(), borderColor: (color !== 1) ? ('black') : (getColor()) }}
              onMouseOver={drag}
              onMouseDown={onDown}
-             onDoubleClick={doubleClick}
+             onDoubleClick={dClick}
         />
     )
 };

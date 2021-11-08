@@ -1,20 +1,21 @@
 import Tile from './Tile'
-import {useState} from "react";
+import {useState} from "react"
 import './Board.css'
-import Selection from "./Selection";
+import Selection from "./Selection"
 
-let test = null
+let slowDrawInterval = null
 let drawQueue = []
-
+let start = null;
+let exit = null;
 
 const Board = () => {
 
     // Holds a 2D array of tile attributes
-    const [tiles, setTiles] = useState( []);
+    const [tiles, setTiles] = useState([]);
     // Mouse state, used for dragging
     const [mouseDown, setMouseDown] = useState(false);
-    const [xTiles, setXTiles] = useState(61);
-    const [yTiles, setYTiles] = useState(31);
+    const [xTiles, setXTiles] = useState(33);
+    const [yTiles, setYTiles] = useState(17);
 
     // Used to reset the board to a blank state
     const resetBoard = () => {
@@ -41,6 +42,9 @@ const Board = () => {
 
     // Updates a tile and re-renders board, this function gets passed to all tiles
     const updateColor = (pos, color) => {
+        if(pos === start) {start = null}
+        if(pos === exit) {exit = null}
+
         let temp = tiles
         temp[pos.y][pos.x] = { key: (pos.x + ' ' + pos.y),
             pos,
@@ -49,14 +53,12 @@ const Board = () => {
     }
 
     const startDraw = async () => {
-        console.log('test')
-        test = setInterval(slowDraw, 1)
+        slowDrawInterval = setInterval(slowDraw, 1)
     }
 
     const slowDraw = async () => {
         if(drawQueue.length === 0) {
-            console.log('Slow draw finished')
-            clearInterval(test)
+            clearInterval(slowDrawInterval)
             return
         }
         let drawInfo = drawQueue.shift()
@@ -116,18 +118,7 @@ const Board = () => {
         return null
     }
 
-    // Creates a maze by using random BFS
-    const createMazeBFS = ( start ) => {
-
-        let tileList = []
-        let newDrawList = []
-
-        let mazeTiles = JSON.parse(JSON.stringify(tiles))
-
-        tileList.push( start )
-        mazeTiles[start[1]][start[0]].color = 0
-        newDrawList.push( {pos:{x:start[0], y:start[1]}, color:0} )
-
+    const mazeBFS = (tileList, mazeTiles, newDrawList) => {
         while(tileList.length > 0) {
 
             let tileElement = randomElement(tileList)
@@ -148,23 +139,9 @@ const Board = () => {
             newDrawList.push( {pos:{x:toAdd[2], y:toAdd[3]}, color:0} )
             newDrawList.push( {pos:{x:toAdd[0], y:toAdd[1]}, color:0} )
         }
-
-        drawQueue = newDrawList
-        startDraw()
     }
 
-    // Creates a maze by using random DFS
-    const createMazeDFS = ( start ) => {
-
-        let tileList = []
-        let newDrawList = []
-
-        let mazeTiles = JSON.parse(JSON.stringify(tiles))
-
-        tileList.push( start )
-        mazeTiles[start[1]][start[0]].color = 0
-        newDrawList.push( {pos:{x:start[0], y:start[1]}, color:0} )
-
+    const mazeDFS = (tileList, mazeTiles, newDrawList) => {
         while(tileList.length > 0) {
 
             //let tileElement = randomElement(tileList)
@@ -185,40 +162,203 @@ const Board = () => {
             newDrawList.push( {pos:{x:toAdd[2], y:toAdd[3]}, color:0} )
             newDrawList.push( {pos:{x:toAdd[0], y:toAdd[1]}, color:0} )
         }
+    }
 
+    const chooseExit = (mazeTiles) => {
+        let possibleExits = []
+        for(let i = 0; i < mazeTiles.length; i++) {
+            for(let j = 0; j < mazeTiles[0].length; j++) {
+                if(mazeTiles[i][j].color === 0) {
+                    possibleExits.push( mazeTiles[i][j].pos )
+                }
+            }
+        }
+
+        return possibleExits[randomElement(possibleExits)]
+    }
+
+    // Creates a maze by
+    const createMaze = ( startPoint, DFS ) => {
+
+        // Tile queue
+        let tileList = []
+        // Used as a draw queue, passed to slow draw after maze is calculated
+        let newDrawList = []
+        // Copy of tiles that are update with the algorithm
+        let mazeTiles = JSON.parse(JSON.stringify(tiles))
+
+        start = {x:startPoint[0], y:startPoint[1]}
+
+        tileList.push( startPoint )
+        mazeTiles[startPoint[1]][startPoint[0]].color = 0
+        newDrawList.push( {pos:{x:startPoint[0], y:startPoint[1]}, color:2} )
+
+        if(DFS) {
+            mazeDFS(tileList,mazeTiles,newDrawList)
+        } else {
+            mazeBFS(tileList,mazeTiles,newDrawList)
+        }
+
+        let newExit = chooseExit(mazeTiles)
+
+        exit = {x:newExit.x,y:newExit.y}
+        newDrawList.push({pos:newExit, color:3})
         drawQueue = newDrawList
         startDraw()
     }
 
     const genMaze = async (DFS) => {
-        clearInterval(test)
+        clearInterval(slowDrawInterval)
         drawQueue = []
         setRegion( {x:0,y:0} , {x:xTiles, y:yTiles}, 1 )
-        if(DFS) {
-            createMazeDFS( [Math.floor(xTiles/2),Math.floor(yTiles/2)] )
+        if(start) {
+            createMaze(( [Math.floor(start.x),Math.floor(start.y)] ), DFS)
         } else {
-            createMazeBFS( [Math.floor(xTiles/2),Math.floor(yTiles/2)] )
+            createMaze(( [Math.floor(xTiles/2),Math.floor(yTiles/2)] ), DFS)
         }
     }
 
     const stopDraw = () => {
         drawQueue = []
-        clearInterval(test)
+        clearInterval(slowDrawInterval)
     }
 
     const clearMaze = () => {
         setRegion( {x:0, y:0}, {x:xTiles, y:yTiles}, 0 )
     }
 
-    const displayString = () => {
-        console.log(JSON.stringify(tiles))
+    const doubleClick = (pos) => {
+        if(start) {
+            updateColor(start, 0)
+        }
+        start = pos
+        updateColor(pos, 2)
     }
 
+    const BFS = () => {
+        if (start === null || exit === null) {
+            console.log('Must have start and exit in order to search')
+            return;
+        }
+
+        // Tile queue
+        let tileList = []
+        // Used as a draw queue, passed to slow draw after maze is calculated
+        let newDrawList = []
+        // Copy of tiles that are update with the algorithm
+        let mazeTiles = JSON.parse(JSON.stringify(tiles))
+
+        tileList.push(start)
+        newDrawList.push( {pos:{x:start.x, y:start.y}, color:5} )
+        mazeTiles[start.y][start.x].color = 5
+
+        while(tileList.length > 0) {
+            let currentTile = tileList.shift()
+
+            if (currentTile.x === exit.x && currentTile.y === exit.y) {
+                break;
+            }
+
+            newDrawList.push( {pos:{x:currentTile.x, y:currentTile.y}, color:4} )
+            mazeTiles[currentTile.y][currentTile.x].color = 4
+
+            if(currentTile.x - 1 >= 0 && (mazeTiles[currentTile.y][currentTile.x - 1].color === 0 ||
+                mazeTiles[currentTile.y][currentTile.x - 1].color === 3 )) {
+                tileList.push({x:currentTile.x - 1, y:currentTile.y})
+                newDrawList.push( {pos:{x:currentTile.x - 1, y:currentTile.y}, color:5} )
+                mazeTiles[currentTile.y][currentTile.x - 1].color = 5
+            }
+
+            if(currentTile.x + 1 < xTiles && (mazeTiles[currentTile.y][currentTile.x + 1].color === 0 ||
+                mazeTiles[currentTile.y][currentTile.x + 1].color === 3)) {
+                tileList.push({x:currentTile.x + 1, y:currentTile.y})
+                newDrawList.push( {pos:{x:currentTile.x + 1, y:currentTile.y}, color:5} )
+                mazeTiles[currentTile.y][currentTile.x + 1].color = 5
+            }
+
+            if(currentTile.y + 1 < yTiles && (mazeTiles[currentTile.y + 1][currentTile.x].color === 0 ||
+                mazeTiles[currentTile.y + 1][currentTile.x].color === 3)) {
+                tileList.push({x:currentTile.x, y:currentTile.y + 1})
+                newDrawList.push( {pos:{x:currentTile.x, y:currentTile.y + 1}, color:5} )
+                mazeTiles[currentTile.y + 1][currentTile.x].color = 5
+            }
+
+            if(currentTile.y - 1 >= 0 && (mazeTiles[currentTile.y - 1][currentTile.x].color === 0 ||
+                mazeTiles[currentTile.y - 1][currentTile.x].color === 3)) {
+                tileList.push({x:currentTile.x, y:currentTile.y - 1})
+                newDrawList.push( {pos:{x:currentTile.x, y:currentTile.y - 1}, color:5} )
+                mazeTiles[currentTile.y - 1][currentTile.x].color = 5
+            }
+        }
+        drawQueue = newDrawList
+        startDraw()
+
+    }
+
+    const DFS = () => {
+        if (start === null || exit === null) {
+            console.log('Must have start and exit in order to search')
+            return;
+        }
+
+        // Tile queue
+        let tileList = []
+        // Used as a draw queue, passed to slow draw after maze is calculated
+        let newDrawList = []
+        // Copy of tiles that are update with the algorithm
+        let mazeTiles = JSON.parse(JSON.stringify(tiles))
+
+        tileList.push(start)
+        newDrawList.push( {pos:{x:start.x, y:start.y}, color:5} )
+        mazeTiles[start.y][start.x].color = 5
+
+        while(tileList.length > 0) {
+            let currentTile = tileList.pop()
+
+            if (currentTile.x === exit.x && currentTile.y === exit.y) {
+                break;
+            }
+
+            newDrawList.push( {pos:{x:currentTile.x, y:currentTile.y}, color:4} )
+            mazeTiles[currentTile.y][currentTile.x].color = 4
+
+            if(currentTile.x - 1 >= 0 && (mazeTiles[currentTile.y][currentTile.x - 1].color === 0 ||
+                mazeTiles[currentTile.y][currentTile.x - 1].color === 3 )) {
+                tileList.push({x:currentTile.x - 1, y:currentTile.y})
+                newDrawList.push( {pos:{x:currentTile.x - 1, y:currentTile.y}, color:5} )
+                mazeTiles[currentTile.y][currentTile.x - 1].color = 5
+            }
+
+            if(currentTile.x + 1 < xTiles && (mazeTiles[currentTile.y][currentTile.x + 1].color === 0 ||
+                mazeTiles[currentTile.y][currentTile.x + 1].color === 3)) {
+                tileList.push({x:currentTile.x + 1, y:currentTile.y})
+                newDrawList.push( {pos:{x:currentTile.x + 1, y:currentTile.y}, color:5} )
+                mazeTiles[currentTile.y][currentTile.x + 1].color = 5
+            }
+
+            if(currentTile.y + 1 < yTiles && (mazeTiles[currentTile.y + 1][currentTile.x].color === 0 ||
+                mazeTiles[currentTile.y + 1][currentTile.x].color === 3)) {
+                tileList.push({x:currentTile.x, y:currentTile.y + 1})
+                newDrawList.push( {pos:{x:currentTile.x, y:currentTile.y + 1}, color:5} )
+                mazeTiles[currentTile.y + 1][currentTile.x].color = 5
+            }
+
+            if(currentTile.y - 1 >= 0 && (mazeTiles[currentTile.y - 1][currentTile.x].color === 0 ||
+                mazeTiles[currentTile.y - 1][currentTile.x].color === 3)) {
+                tileList.push({x:currentTile.x, y:currentTile.y - 1})
+                newDrawList.push( {pos:{x:currentTile.x, y:currentTile.y - 1}, color:5} )
+                mazeTiles[currentTile.y - 1][currentTile.x].color = 5
+            }
+        }
+        drawQueue = newDrawList
+        startDraw()
+
+    }
 
     return (
         <>
-            <Selection genMaze={genMaze} />
-            <button onClick={displayString}>To String</button>
+            <Selection genMaze={genMaze} BFS={BFS} DFS={DFS} />
+            <button onClick={clearMaze}>Clear Walls</button>
             <div onMouseDown={mDown}
                  onMouseUp={mUp}
                  className='Board'
@@ -230,7 +370,9 @@ const Board = () => {
                                      color={color}
                                      pos={pos}
                                      dragColor={dragColor}
-                                     UpdateColor={updateColor} />
+                                     UpdateColor={updateColor}
+                                     doubleClick={doubleClick}
+                        />
                     })
                 } ) }
             </div>
