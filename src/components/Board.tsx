@@ -2,6 +2,7 @@ import Tile from './Tile'
 import {useState} from "react"
 import './Board.css'
 import Selection from "./Selection"
+import {checkStartAndExit} from "../Contraint-Checks";
 
 let slowDrawInterval = null
 let drawQueue = []
@@ -236,7 +237,7 @@ const Board = () => {
     }
 
     const BFS = () => {
-        if (start === null || exit === null) {
+        if (!checkStartAndExit(start, exit, xTiles, yTiles)) {
             console.log('Must have start and exit in order to search')
             return;
         }
@@ -296,7 +297,7 @@ const Board = () => {
     }
 
     const DFS = () => {
-        if (start === null || exit === null) {
+        if (!checkStartAndExit(start, exit, xTiles, yTiles)) {
             console.log('Must have start and exit in order to search')
             return;
         }
