@@ -15,8 +15,8 @@ const Board = () => {
     const [tiles, setTiles] = useState([]);
     // Mouse state, used for dragging
     const [mouseDown, setMouseDown] = useState(false);
-    const [xTiles, setXTiles] = useState(33);
-    const [yTiles, setYTiles] = useState(17);
+    const [xTiles, setXTiles] = useState(60);
+    const [yTiles, setYTiles] = useState(30);
 
     // Used to reset the board to a blank state
     const resetBoard = () => {
